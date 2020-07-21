@@ -7,6 +7,7 @@ class DietTracker extends Component {
     constructor(props) {
         super(props);
 
+        // Keep different arrays for breakfast, lunch, dinner and snacks
         this.state = {
             items: [
                 { id: uuidv4(), name: 'Eggs' },
