@@ -20,7 +20,7 @@ class ShoppingList extends Component {
     render() {
         const { items } = this.state;
         return (
-            <Container>
+            <Container className="diet-tracker-list">
                 <Button
                     color="dark"
                     style={{marginBottom: '2rem'}}
