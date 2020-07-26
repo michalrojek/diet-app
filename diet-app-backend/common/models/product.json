@@ -1,0 +1,52 @@
+{
+  "name": "product",
+  "base": "PersistedModel",
+  "idInjection": true,
+  "options": {
+    "validateUpsert": true
+  },
+  "properties": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "string"
+    },
+    "weight": {
+      "type": "number",
+      "required": true
+    },
+    "unit": {
+      "type": "string",
+      "required": true
+    },
+    "calories": {
+      "type": "number",
+      "required": true
+    },
+    "protein": {
+      "type": "number",
+      "required": true
+    },
+    "carbohydrates": {
+      "type": "number",
+      "required": true
+    },
+    "fat": {
+      "type": "number",
+      "required": true
+    }
+  },
+  "validations": [],
+  "relations": {},
+  "acls": [
+    {
+      "accessType": "WRITE",
+      "principalType": "ROLE",
+      "principalId": "$unauthenticated",
+      "permission": "DENY"
+    }
+  ],
+  "methods": {}
+}
