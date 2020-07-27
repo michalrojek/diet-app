@@ -10,6 +10,7 @@ import {
     NavLink,
     Container
 } from 'reactstrap';
+import Auth from '../modules/Auth';
 
 class AppNavbar extends Component {
     constructor(props) {
@@ -54,14 +55,30 @@ class AppNavbar extends Component {
     but Link form react-router-dom doesn't cause page to reload
     with class straight from bootstrap seems to look and works just fine
     */
+
+    //TODO: reload page on logout
+    //TODO: add axios request to logout endpoint in Auth.js -> deauthentiacteUser()
     render() {
-        return (
-            <div>
-                <Navbar color="dark" dark expand="sm" className="mb-5">
-                    <Container>
-                        <NavbarBrand href="/">DietApp</NavbarBrand>
-                        <NavbarToggler onClick={this.toggle}/>
-                        <Collapse isOpen={this.state.isOpen} navbar>
+        let routes = (
+            <Collapse isOpen={this.state.isOpen} navbar>
+                            <Nav className="ml-auto" navbar>
+                                <NavItem>
+                                    <Link to="/login" className="nav-link">
+                                        Login
+                                    </Link>
+                                </NavItem>
+                                <NavItem>
+                                    <Link to="/register" className="nav-link">
+                                        Register
+                                    </Link>
+                                </NavItem>
+                            </Nav>
+                        </Collapse>
+          )
+        
+            if (Auth.isUserAuthenticated()) {
+              routes = (
+                <Collapse isOpen={this.state.isOpen} navbar>
                             <Nav className="ml-auto" navbar>
                                 <NavItem>
                                     <Link to="/diet-tracker" className="nav-link">
@@ -78,8 +95,23 @@ class AppNavbar extends Component {
                                         List
                                     </Link>
                                 </NavItem>
+                                <NavItem>
+                                    <Link to="/" className="nav-link" onClick={Auth.deauthentiacteUser}>
+                                        Logout
+                                    </Link>
+                                </NavItem>
                             </Nav>
                         </Collapse>
+              )
+            }
+
+        return (
+            <div>
+                <Navbar color="dark" dark expand="sm" className="mb-5">
+                    <Container>
+                        <NavbarBrand href="/">DietApp</NavbarBrand>
+                        <NavbarToggler onClick={this.toggle}/>
+                        {routes}
                     </Container>
                 </Navbar>
             </div>
