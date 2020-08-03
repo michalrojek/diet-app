@@ -56,7 +56,7 @@ class AppNavbar extends Component {
     with class straight from bootstrap seems to look and works just fine
     */
 
-    //TODO: reload page on logout
+    //TODO: reload page on logout - reload appnavbar
     //TODO: add axios request to logout endpoint in Auth.js -> deauthentiacteUser()
     render() {
         let routes = (

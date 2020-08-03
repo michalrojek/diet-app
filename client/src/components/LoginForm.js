@@ -27,6 +27,7 @@ class LoginForm extends Component {
     //TODO: handle errors
     onSubmit = (e) => {
         e.preventDefault();
+        console.log(e.target.exampleEmail.value)
         if (!this.state.invalidPassword || !this.state.confirmPassword) {
             axios.post('http://localhost:5000/api/Users/login', {
                 email: this.state.email,
