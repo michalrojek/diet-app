@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
-import { Container, ListGroup, ListGroupItem, Button, Modal, ModalHeader, ModalBody, ModalFooter, Input, FormGroup, Label, Form } from 'reactstrap';
+import { Container, ListGroup, ListGroupItem, Button, Modal, ModalHeader, ModalBody, ModalFooter, Input, FormGroup, Label, Form, Nav } from 'reactstrap';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
+import {Link, /*NavLink*/} from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 
@@ -12,6 +13,7 @@ import axios from 'axios';
 //TODO: check if this form of <Modal><Form><Modal> is really okay (seems to work)
 //TODO: add some sort of validation to form, add message prompt after succesful add
 //TODO: clear values in state after closing modal
+//TODO: add possibility for moderator to delete item (request to backend)
 class ShoppingList extends Component {
     constructor(props) {
         super(props);
@@ -83,6 +85,7 @@ class ShoppingList extends Component {
         }));
     }
 
+    //BTW: looks like list already refreshes itself after adding new product so there's no need to update
     submitData = (e) => {
         e.preventDefault();
         const {inputs} = this.state
@@ -142,7 +145,9 @@ class ShoppingList extends Component {
                                             }));
                                         }}
                                     >&times;</Button>
-                                    {name}
+                                    <Link to={`/list/${id}`}>
+                                        {name}
+                                    </Link>
                                 </ListGroupItem>
                             </CSSTransition>
                         ))}
