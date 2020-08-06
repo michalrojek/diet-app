@@ -25,6 +25,7 @@ class LoginForm extends Component {
     }
 
     //TODO: handle errors
+    //TODO SETITERM SHOULD BE IN AUTH
     onSubmit = (e) => {
         e.preventDefault();
         console.log(e.target.exampleEmail.value)
@@ -35,6 +36,7 @@ class LoginForm extends Component {
             }).then((response) => {
                 console.log(response)
                 Auth.authenticateUser(response.data.id);
+                localStorage.setItem('userId', response.data.userId);
                 this.props.history.push('/');
                 window.location.reload(false); 
             })

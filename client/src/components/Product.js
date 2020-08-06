@@ -1,8 +1,13 @@
 import React, { Component } from 'react';
-import { Container, ListGroup, ListGroupItem} from 'reactstrap';
+import { Container, ListGroup, ListGroupItem, Form, FormGroup, Label, Input} from 'reactstrap';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import axios from 'axios';
 
+//TODO should there be some kind of breadcrumbs?
+//TODO ADD SENSORY EVALUATION
+//TODO ADD REQUEST AND AUTHENTICATION FOR USERS RATING AND COMMENTS
+//TODO ADD VALIDATION ON COMMENT AND RATING
+//TODO ADD comments
 class Product extends Component {
     constructor(props) {
         super(props);
@@ -44,7 +49,9 @@ class Product extends Component {
                     type: 'number',
                     value: 0
                 }
-            }
+            },
+            rating: 0,
+            ratingId: ''
         }
     }
 
@@ -64,10 +71,54 @@ class Product extends Component {
                 };
             });
         })
+        const filter = `{"where": {"and": [{"userId": "${localStorage.getItem('userId')}"}, {"productId": "${id}"}]}}`;
+        //const filter = `{"where": {"userId": ${id}}}`
+        axios.get(`http://localhost:5000/api/Ratings?filter=${filter}`).then(({data}) => {
+            if (data.length){
+                this.setState({rating: data[0].value, ratingId: data[0].id});
+            }
+        });
+    }
+
+    onChange = (e) => {
+        e.preventDefault();
+        const {target: {value}} = e;
+        const {match: {params: {id}}} = this.props;
+        const {ratingId} = this.state;
+        if (ratingId) {
+            axios.put('http://localhost:5000/api/Ratings', {
+                productId: id,
+                userId: localStorage.getItem('userId') ,
+                value,
+                id: ratingId
+            }).then((response) => {
+                console.log(response)
+                this.setState({rating: value, ratingId: response.data.id});
+            })
+        } else {
+            axios.post('http://localhost:5000/api/Ratings', {
+                productId: id,
+                userId: localStorage.getItem('userId') ,
+                value
+            }).then((response) => {
+                console.log(response)
+                this.setState({rating: value, ratingId: response.data.id});
+            })
+        }
     }
 
     render() {
-        const { items } = this.state;
+        const { items, rating } = this.state;
+        const radioButtons = [];
+        for (let i = 0; i < 5; i++) {
+            radioButtons.push(
+                <FormGroup>
+                    <Label check>
+                        <Input type="radio" name={`radio${i+1}`} value={i+1} checked={rating == i + 1}/>{` ${i+1}`}
+                    </Label>
+                </FormGroup>
+            )
+        }
         return (
             <Container className="diet-tracker-list">
                 <ListGroup>
@@ -77,6 +128,10 @@ class Product extends Component {
                         </ListGroupItem>
                     ))}
                 </ListGroup>
+                <Form onChange={this.onChange}>
+                    <legend className="col-form-label col-sm-2">Rating</legend>
+                    {radioButtons}
+                </Form>
             </Container>
         );
     }

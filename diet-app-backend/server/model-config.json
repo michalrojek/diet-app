@@ -38,5 +38,13 @@
   "product": {
     "dataSource": "db",
     "public": true
+  },
+  "Rating": {
+    "dataSource": "db",
+    "public": true
+  },
+  "Comment": {
+    "dataSource": "db",
+    "public": true
   }
 }
