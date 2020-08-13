@@ -4,6 +4,13 @@ import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import { v4 as uuidv4 } from 'uuid';
 
 /*
+    THIS FORM IS PRETTY MUCH ENTRYFORM SO IT SHOULD BE DELETED LATER
+    THIS FORM IS PRETTY MUCH ENTRYFORM SO IT SHOULD BE DELETED LATER
+    THIS FORM IS PRETTY MUCH ENTRYFORM SO IT SHOULD BE DELETED LATER
+*/
+
+
+/*
     Decide whenever this form should be dynamic - meaning send request for result upon typing
     Or if it should have button that triggers search request
 */
