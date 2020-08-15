@@ -23,14 +23,22 @@ class DietTracker extends Component {
         this.getData();
     }
 
-    componentDidUpdate() {
-        //this.getData();
+    componentDidUpdate(prevProps, prevState) {
+        if (this.state.date != prevState.date) {
+            this.getData();
+        }
     }
 
-    getProductsByType = (data, type) => {
+    getProductsIdsByType = (data, type) => {
         return data.filter(({type: dbType}) => {
             return type === dbType;
-        })
+        }).map(({productId}) => productId);
+    }
+
+    getProductsByIds = (data, ids) => {
+        return data.filter(({id}) => {
+            return ids.includes(id);
+        });
     }
 
     getData = () => {
@@ -42,11 +50,29 @@ class DietTracker extends Component {
                 //AFTER THAT SEND REQUEST FOR DETAIL TO /API/PRODUCTS WITH MULTIPLE IDS PROVIDED FROM THIS REQUEST
                 //LOOPBACK -> QUERY -> WHERE -> INQ OPERATOR
                 console.log(data)
-                const breakfast = this.getProductsByType(data, "breakfast");
-                const lunch = this.getProductsByType(data, "lunch");
-                const dinner = this.getProductsByType(data, "dinner");
-                const snacks = this.getProductsByType(data, "snacks");
-                this.setState({breakfast, lunch, dinner, snacks});
+                const breakfastIds = this.getProductsIdsByType(data, "breakfast");
+                const lunchIds = this.getProductsIdsByType(data, "lunch");
+                const dinnerIds = this.getProductsIdsByType(data, "dinner");
+                const snacksIds = this.getProductsIdsByType(data, "snacks");
+                const ids = data.map(({productId}) => productId);
+                let idsString = ids.reduce((result, current) => {
+                    return `${result}"${current}",`;
+                }, '');
+                idsString = idsString.slice(0, idsString.length - 1);
+                const productsFilter = `{"where": {"id": {"inq": [${idsString}]}}}`;
+                console.log(productsFilter)
+                axios.get(`http://localhost:5000/api/products?filter=${productsFilter}`).then(({data}) => {
+                    if (data.length){
+                        console.log(data)
+                        const breakfast = this.getProductsByIds(data, breakfastIds);
+                        const lunch = this.getProductsByIds(data, lunchIds);
+                        const dinner = this.getProductsByIds(data, dinnerIds);
+                        const snacks = this.getProductsByIds(data, snacksIds);
+                        this.setState({breakfast, lunch, dinner, snacks});
+                    }
+                });
+            } else {
+                this.setState({breakfast: [], lunch: [], dinner: [], snacks: []})
             }
         });
     }

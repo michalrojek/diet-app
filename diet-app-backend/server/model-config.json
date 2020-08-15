@@ -50,5 +50,9 @@
   "Entry": {
     "dataSource": "db",
     "public": true
+  },
+  "Goal": {
+    "dataSource": "db",
+    "public": true
   }
 }

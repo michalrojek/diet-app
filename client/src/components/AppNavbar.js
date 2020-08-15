@@ -86,10 +86,15 @@ class AppNavbar extends Component {
                                     </Link>
                                 </NavItem>
                                 <NavItem>
+                                    <Link to="/goal" className="nav-link">
+                                        Set your nutrition goal
+                                    </Link>
+                                </NavItem>
+                                {/*<NavItem>
                                     <Link to="/diet-tracker-form" className="nav-link">
                                         Form for diet tracker
                                     </Link>
-                                </NavItem>
+                                </NavItem>*/}
                                 <NavItem>
                                     <Link to="/list" className="nav-link">
                                         List
