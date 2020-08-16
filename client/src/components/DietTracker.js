@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Container, ListGroup, ListGroupItem, Button, Modal, ModalHeader, ModalBody, ModalFooter, Input, FormGroup, Label, Form, Nav } from 'reactstrap';
+import { Container, ListGroup, ListGroupItem, Button, Modal, ModalHeader, ModalBody, ModalFooter, Input, FormGroup, Label, Form, Table } from 'reactstrap';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import {Link, /*NavLink*/} from 'react-router-dom';
 import EntryForm from './EntryForm';
@@ -15,13 +15,26 @@ class DietTracker extends Component {
             breakfast: [],
             lunch: [],
             dinner: [],
-            snacks: []
+            snacks: [],
+            goal: {}
         }
     }
 
     componentDidMount() {
         this.getData();
+        this.getUserGoal();
     }
+
+    //AFTER ADDING DATE TO GOAL THIS SHOULD BE CALLED IN COMPONENTDIDUPDATE TOO
+    getUserGoal = () => {
+        const filter = `{"where": {"userId": "${localStorage.getItem('userId')}"}}`;
+        axios.get(`http://localhost:5000/api/Goals?filter=${filter}`).then(({data}) => {
+            if (data.length) {
+                const {calories, carbohydrates, protein, fat, id} = data[0];
+                this.setState({goal: {calories, carbohydrates, protein, fat, id}});
+            }
+        });
+    };
 
     componentDidUpdate(prevProps, prevState) {
         if (this.state.date != prevState.date) {
@@ -35,26 +48,35 @@ class DietTracker extends Component {
         }).map(({productId}) => productId);
     }
 
-    getProductsByIds = (data, ids) => {
-        return data.filter(({id}) => {
+    getProductsByIds = (data, ids, entries) => {
+        const products = data.filter(({id}) => {
             return ids.includes(id);
+        });
+        return products.map((product) => {
+            const trackerEntry = entries.find(({productId}) => {
+                return productId === product.id;
+            });
+            return {
+                ...product,
+                calories: product.calories * trackerEntry.multiplier,
+                carbohydrates: product.carbohydrates * trackerEntry.multiplier,
+                protein: product.protein * trackerEntry.multiplier,
+                fat: product.fat * trackerEntry.multiplier
+            };
         });
     }
 
     getData = () => {
         const {date} = this.state;
         const filter = `{"where": {"and": [{"userId": "${localStorage.getItem('userId')}"}, {"date": "${date}"}]}}`;
-        //const filter = `{"where": {"userId": ${id}}}`
-        axios.get(`http://localhost:5000/api/Entries?filter=${filter}`).then(({data}) => {
-            if (data.length){
-                //AFTER THAT SEND REQUEST FOR DETAIL TO /API/PRODUCTS WITH MULTIPLE IDS PROVIDED FROM THIS REQUEST
-                //LOOPBACK -> QUERY -> WHERE -> INQ OPERATOR
-                console.log(data)
-                const breakfastIds = this.getProductsIdsByType(data, "breakfast");
-                const lunchIds = this.getProductsIdsByType(data, "lunch");
-                const dinnerIds = this.getProductsIdsByType(data, "dinner");
-                const snacksIds = this.getProductsIdsByType(data, "snacks");
-                const ids = data.map(({productId}) => productId);
+        axios.get(`http://localhost:5000/api/Entries?filter=${filter}`).then(({data: entries}) => {
+            if (entries.length){
+                console.log(entries)
+                const breakfastIds = this.getProductsIdsByType(entries, "breakfast");
+                const lunchIds = this.getProductsIdsByType(entries, "lunch");
+                const dinnerIds = this.getProductsIdsByType(entries, "dinner");
+                const snacksIds = this.getProductsIdsByType(entries, "snacks");
+                const ids = entries.map(({productId}) => productId);
                 let idsString = ids.reduce((result, current) => {
                     return `${result}"${current}",`;
                 }, '');
@@ -64,10 +86,10 @@ class DietTracker extends Component {
                 axios.get(`http://localhost:5000/api/products?filter=${productsFilter}`).then(({data}) => {
                     if (data.length){
                         console.log(data)
-                        const breakfast = this.getProductsByIds(data, breakfastIds);
-                        const lunch = this.getProductsByIds(data, lunchIds);
-                        const dinner = this.getProductsByIds(data, dinnerIds);
-                        const snacks = this.getProductsByIds(data, snacksIds);
+                        const breakfast = this.getProductsByIds(data, breakfastIds, entries);
+                        const lunch = this.getProductsByIds(data, lunchIds, entries);
+                        const dinner = this.getProductsByIds(data, dinnerIds, entries);
+                        const snacks = this.getProductsByIds(data, snacksIds, entries);
                         this.setState({breakfast, lunch, dinner, snacks});
                     }
                 });
@@ -83,10 +105,27 @@ class DietTracker extends Component {
         this.setState({date: value})
     }
 
-    //MAKE LIST COMPONENT
+    //MAKE TABLE COMPONENT
     //ADD SUPPORT FOR DELETING ENTRY FROM DATABASE
+    //MAYBE ADD INFO ABOUT PORTION SIZE?
+    //ADD PRECENTAGE TO GOAL TABLE
+    //SHOULD I KEEP NEGATIVE VALUES IN REMAINING ROW OF GOAL TABLE
     render() {
-        const { breakfast, lunch, dinner, snacks } = this.state;
+        const { breakfast, lunch, dinner, snacks, goal } = this.state;
+        const everyEntry = [...breakfast, ...lunch, ...dinner, ...snacks];
+        const sum = everyEntry.reduce((result, {calories, carbohydrates, protein, fat}) => {
+            return {
+                calories: result.calories + calories,
+                carbohydrates: result.carbohydrates + carbohydrates,
+                protein: result.protein + protein,
+                fat: result.fat + fat
+            }
+        }, {
+            calories: 0,
+            carbohydrates: 0,
+            protein: 0,
+            fat: 0
+        });
         return (
             <Container>
                 <Form>
@@ -97,104 +136,143 @@ class DietTracker extends Component {
                 </Form>
                 <h3>Breakfast</h3>
                 <EntryForm type="breakfast" date={this.state.date}></EntryForm>
-                <ListGroup>
-                    <TransitionGroup className="shopping-list">
-                        {breakfast.map(({ id, name }) => (
-                            <CSSTransition key={id} timeout={500} classNames="fade">
-                                <ListGroupItem>
-                                    <Button
-                                        className="remove-btn"
-                                        color="danger"
-                                        size="sm"
-                                        onClick={() => {
-                                            this.setState(state => ({
-                                                breakfast: state.breakfast.filter(item => item.id !== id)
-                                            }));
-                                        }}
-                                    >&times;</Button>
-                                    <Link to={`/list/${id}`}>
-                                        {name}
-                                    </Link>
-                                </ListGroupItem>
-                            </CSSTransition>
+                <Table hover>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Product</th>
+                            <th>Calories</th>
+                            <th>Carbohydrates</th>
+                            <th>Protein</th>
+                            <th>Fat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {breakfast.map(({id, name, calories, carbohydrates, protein, fat, multiplier}, index) => (
+                            <tr>
+                                <th scope="row">{index + 1}</th>
+                                <th>{name}</th>
+                                <th>{calories.toFixed(2)}</th>
+                                <th>{carbohydrates.toFixed(2)}</th>
+                                <th>{protein.toFixed(2)}</th>
+                                <th>{fat.toFixed(2)}</th>
+                            </tr>    
                         ))}
-                    </TransitionGroup>
-                </ListGroup>
+                    </tbody>
+                </Table>
                 <h3>Lunch</h3>
                 <EntryForm type="lunch" date={this.state.date}></EntryForm>
-                <ListGroup>
-                    <TransitionGroup className="shopping-list">
-                        {lunch.map(({ id, name }) => (
-                            <CSSTransition key={id} timeout={500} classNames="fade">
-                                <ListGroupItem>
-                                    <Button
-                                        className="remove-btn"
-                                        color="danger"
-                                        size="sm"
-                                        onClick={() => {
-                                            this.setState(state => ({
-                                                lunch: state.lunch.filter(item => item.id !== id)
-                                            }));
-                                        }}
-                                    >&times;</Button>
-                                    <Link to={`/list/${id}`}>
-                                        {name}
-                                    </Link>
-                                </ListGroupItem>
-                            </CSSTransition>
+                <Table hover>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Product</th>
+                            <th>Calories</th>
+                            <th>Carbohydrates</th>
+                            <th>Protein</th>
+                            <th>Fat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {lunch.map(({id, name, calories, carbohydrates, protein, fat, multiplier}, index) => (
+                            <tr>
+                                <th scope="row">{index + 1}</th>
+                                <th>{name}</th>
+                                <th>{calories.toFixed(2)}</th>
+                                <th>{carbohydrates.toFixed(2)}</th>
+                                <th>{protein.toFixed(2)}</th>
+                                <th>{fat.toFixed(2)}</th>
+                            </tr>    
                         ))}
-                    </TransitionGroup>
-                </ListGroup>
+                    </tbody>
+                </Table>
                 <h3>Dinner</h3>
                 <EntryForm type="dinner" date={this.state.date}></EntryForm>
-                <ListGroup>
-                    <TransitionGroup className="shopping-list">
-                        {dinner.map(({ id, name }) => (
-                            <CSSTransition key={id} timeout={500} classNames="fade">
-                                <ListGroupItem>
-                                    <Button
-                                        className="remove-btn"
-                                        color="danger"
-                                        size="sm"
-                                        onClick={() => {
-                                            this.setState(state => ({
-                                                dinner: state.dinner.filter(item => item.id !== id)
-                                            }));
-                                        }}
-                                    >&times;</Button>
-                                    <Link to={`/list/${id}`}>
-                                        {name}
-                                    </Link>
-                                </ListGroupItem>
-                            </CSSTransition>
+                <Table hover>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Product</th>
+                            <th>Calories</th>
+                            <th>Carbohydrates</th>
+                            <th>Protein</th>
+                            <th>Fat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {dinner.map(({id, name, calories, carbohydrates, protein, fat, multiplier}, index) => (
+                            <tr>
+                                <th scope="row">{index + 1}</th>
+                                <th>{name}</th>
+                                <th>{calories.toFixed(2)}</th>
+                                <th>{carbohydrates.toFixed(2)}</th>
+                                <th>{protein.toFixed(2)}</th>
+                                <th>{fat.toFixed(2)}</th>
+                            </tr>    
                         ))}
-                    </TransitionGroup>
-                </ListGroup>
+                    </tbody>
+                </Table>
                 <h3>Snacks</h3>
                 <EntryForm type="snacks" date={this.state.date}></EntryForm>
-                <ListGroup>
-                    <TransitionGroup className="shopping-list">
-                        {snacks.map(({ id, name }) => (
-                            <CSSTransition key={id} timeout={500} classNames="fade">
-                                <ListGroupItem>
-                                    <Button
-                                        className="remove-btn"
-                                        color="danger"
-                                        size="sm"
-                                        onClick={() => {
-                                            this.setState(state => ({
-                                                snacks: state.snacks.filter(item => item.id !== id)
-                                            }));
-                                        }}
-                                    >&times;</Button>
-                                    <Link to={`/list/${id}`}>
-                                        {name}
-                                    </Link>
-                                </ListGroupItem>
-                            </CSSTransition>
+                <Table hover>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Product</th>
+                            <th>Calories</th>
+                            <th>Carbohydrates</th>
+                            <th>Protein</th>
+                            <th>Fat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {snacks.map(({id, name, calories, carbohydrates, protein, fat, multiplier}, index) => (
+                            <tr>
+                                <th scope="row">{index + 1}</th>
+                                <th>{name}</th>
+                                <th>{calories.toFixed(2)}</th>
+                                <th>{carbohydrates.toFixed(2)}</th>
+                                <th>{protein.toFixed(2)}</th>
+                                <th>{fat.toFixed(2)}</th>
+                            </tr>    
                         ))}
-                    </TransitionGroup>
-                </ListGroup>
+                    </tbody>
+                </Table>
+                <h3>Your Goal</h3>
+                <Table hover>
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Calories</th>
+                            <th>Carbohydrates</th>
+                            <th>Protein</th>
+                            <th>Fat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th>Sum</th>
+                            <th>{sum.calories}</th>
+                            <th>{sum.carbohydrates}</th>
+                            <th>{sum.protein}</th>
+                            <th>{sum.fat}</th>
+                        </tr>
+                        <tr>
+                            <th>Your Goal</th>
+                            <th>{goal.calories}</th>
+                            <th>{goal.carbohydrates}</th>
+                            <th>{goal.protein}</th>
+                            <th>{goal.fat}</th>
+                        </tr>
+                        <tr>
+                            <th>Remaining</th>
+                            <th>{(goal.calories - sum.calories).toFixed(2)}</th>
+                            <th>{(goal.carbohydrates - sum.carbohydrates).toFixed(2)}</th>
+                            <th>{(goal.protein - sum.protein).toFixed(2)}</th>
+                            <th>{(goal.fat - sum.fat).toFixed(2)}</th>
+                        </tr>
+                    </tbody>
+                </Table>
             </Container>
         );
     }
