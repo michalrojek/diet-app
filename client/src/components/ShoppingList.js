@@ -1,17 +1,16 @@
 import React, { Component } from 'react';
-import { Container, ListGroup, ListGroupItem, Button, Modal, ModalHeader, ModalBody, ModalFooter, Input, FormGroup, Label, Form, Nav } from 'reactstrap';
-import { CSSTransition, TransitionGroup } from 'react-transition-group';
-import {Link, /*NavLink*/} from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
+import { Container, Button, Modal, ModalHeader, ModalBody, ModalFooter, Input, FormGroup, Label, Form } from 'reactstrap';
+import {Link} from 'react-router-dom';
 import axios from 'axios';
 
+import TableComponent from "./TableComponent";
 
+const PAGE_SIZE = 2;
 //TODO: divide components to container and presentional components i.e. list component, modal component, form component (inputs in props as in state here)
-//TODO: prepare form for adding new product
-//TODO: add function for posting form data to backend endpoint
 //TODO: prepare list refreshing after adding new item
 //TODO: check if this form of <Modal><Form><Modal> is really okay (seems to work)
 //TODO: add some sort of validation to form, add message prompt after succesful add
+//TODO: ADD VALIDATION IN GENERAL FOR ANY TYPE OF REQUEST
 //TODO: clear values in state after closing modal
 //TODO: add possibility for moderator to delete item (request to backend)
 class ShoppingList extends Component {
@@ -57,7 +56,17 @@ class ShoppingList extends Component {
                     type: 'number',
                     value: 0
                 }
-            }
+            },
+            columns: [
+                {label: 'Name', id: 'name'},
+                {label: 'Weight', id: 'weight'},
+                {label: 'Calories', id: 'calories'},
+                {label: 'Protein', id: 'protein'},
+                {label: 'Carbohydrates', id: 'carbohydrates'},
+                {label: 'Fat', id: 'fat'},
+                {label: '', id: 'remove'}
+            ],
+            productsCount: 0
         }
     }
 
@@ -67,8 +76,22 @@ class ShoppingList extends Component {
 
     getData = () => {
         axios.get('http://localhost:5000/api/products').then(({data}) => {
-            const items = [...data]
+            const items = data.map((item) => {
+                const onClick = () => {
+                    this.setState(state => ({
+                        rows: state.rows.filter(row => item.id !== row.id)
+                    }));
+                };
+                return {
+                    ...item,
+                    name: <Link to={`/list/${item.id}`}>{item.name}</Link>,
+                    remove: <Button className="remove-btn" color="danger" size="sm" onClick={onClick}>&times;</Button>
+                };
+            });
             this.setState({items});
+        })
+        axios.get('http://localhost:5000/api/products/count').then(({data}) => {
+            this.setState({productsCount: data.count});
         })
     }
 
@@ -105,7 +128,7 @@ class ShoppingList extends Component {
     }
 
     render() {
-        const { items, inputs } = this.state;
+        const { items, inputs, columns, productsCount } = this.state;
         return (
             <Container className="diet-tracker-list">
                 <Button
@@ -130,29 +153,7 @@ class ShoppingList extends Component {
                         </ModalFooter>
                     </Form>
                 </Modal>
-                <ListGroup>
-                    <TransitionGroup className="shopping-list">
-                        {items.map(({ id, name }) => (
-                            <CSSTransition key={id} timeout={500} classNames="fade">
-                                <ListGroupItem>
-                                    <Button
-                                        className="remove-btn"
-                                        color="danger"
-                                        size="sm"
-                                        onClick={() => {
-                                            this.setState(state => ({
-                                                items: state.items.filter(item => item.id !== id)
-                                            }));
-                                        }}
-                                    >&times;</Button>
-                                    <Link to={`/list/${id}`}>
-                                        {name}
-                                    </Link>
-                                </ListGroupItem>
-                            </CSSTransition>
-                        ))}
-                    </TransitionGroup>
-                </ListGroup>
+                <TableComponent columns={columns} rows={items} rowsCount={productsCount} pageSize={PAGE_SIZE}/>
             </Container>
         );
     }

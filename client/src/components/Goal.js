@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { Container, Form, FormGroup, Label, Input, Button } from 'reactstrap';
 import axios from 'axios';
 
+//ADD DATE TO GOAL SO IT DOESN'T CHANGE FOR PAST ENTRIES
 class Goal extends Component {
 
     constructor(props) {
