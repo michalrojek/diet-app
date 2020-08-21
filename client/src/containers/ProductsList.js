@@ -3,7 +3,7 @@ import { Container, Button, Modal, ModalHeader, ModalBody, ModalFooter, Input, F
 import {Link} from 'react-router-dom';
 import axios from 'axios';
 
-import TableComponent from "./TableComponent";
+import TableComponent from "../components/TableComponent";
 
 const PAGE_SIZE = 2;
 //TODO: divide components to container and presentional components i.e. list component, modal component, form component (inputs in props as in state here)
@@ -13,7 +13,7 @@ const PAGE_SIZE = 2;
 //TODO: ADD VALIDATION IN GENERAL FOR ANY TYPE OF REQUEST
 //TODO: clear values in state after closing modal
 //TODO: add possibility for moderator to delete item (request to backend)
-class ShoppingList extends Component {
+class ProductsList extends Component {
     constructor(props) {
         super(props);
 
@@ -66,16 +66,27 @@ class ShoppingList extends Component {
                 {label: 'Fat', id: 'fat'},
                 {label: '', id: 'remove'}
             ],
-            productsCount: 0
+            productsCount: 0,
+            page: 1
         }
     }
 
     componentDidMount() {
         this.getData();
+        this.getProductsCount();
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+        const {page} = this.state;
+        if (page !== prevState.page) {
+            this.getData();
+        }
     }
 
     getData = () => {
-        axios.get('http://localhost:5000/api/products').then(({data}) => {
+        const {page} = this.state;
+        const skip = PAGE_SIZE * (page - 1);
+        axios.get(`http://localhost:5000/api/products?filter[limit]=${PAGE_SIZE}&filter[skip]=${skip}`).then(({data}) => {
             const items = data.map((item) => {
                 const onClick = () => {
                     this.setState(state => ({
@@ -89,10 +100,13 @@ class ShoppingList extends Component {
                 };
             });
             this.setState({items});
-        })
+        });
+    }
+
+    getProductsCount = () => {
         axios.get('http://localhost:5000/api/products/count').then(({data}) => {
             this.setState({productsCount: data.count});
-        })
+        });
     }
 
     toggle = () => {
@@ -127,8 +141,20 @@ class ShoppingList extends Component {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
 
+    changePage = (pageNumber) => {
+        this.setState({page: pageNumber});
+    }
+
     render() {
-        const { items, inputs, columns, productsCount } = this.state;
+        const { items, inputs, columns, productsCount, page } = this.state;
+        const tableProps = {
+            columns,
+            rows: items,
+            rowsCount: productsCount,
+            pageSize: PAGE_SIZE,
+            currentPage: page,
+            changePage: this.changePage
+        }
         return (
             <Container className="diet-tracker-list">
                 <Button
@@ -153,10 +179,10 @@ class ShoppingList extends Component {
                         </ModalFooter>
                     </Form>
                 </Modal>
-                <TableComponent columns={columns} rows={items} rowsCount={productsCount} pageSize={PAGE_SIZE}/>
+                <TableComponent {...tableProps}/>
             </Container>
         );
     }
 }
 
-export default ShoppingList;
+export default ProductsList;

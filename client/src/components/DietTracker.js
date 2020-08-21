@@ -4,7 +4,9 @@ import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import {Link, /*NavLink*/} from 'react-router-dom';
 import EntryForm from './EntryForm';
 import axios from 'axios';
+import TableComponent from './TableComponent';
 
+//MAYBE ADD KG TO LB CONVERTER TO WEIGHT GOAL?
 class DietTracker extends Component {
     constructor(props) {
         super(props);
@@ -16,7 +18,15 @@ class DietTracker extends Component {
             lunch: [],
             dinner: [],
             snacks: [],
-            goal: {}
+            goal: {},
+            columns: [
+                {label: 'Name', id: 'name'},
+                {label: 'Calories', id: 'calories'},
+                {label: 'Protein', id: 'protein'},
+                {label: 'Carbohydrates', id: 'carbohydrates'},
+                {label: 'Fat', id: 'fat'},
+                {label: '', id: 'remove'}
+            ]
         }
     }
 
@@ -48,7 +58,7 @@ class DietTracker extends Component {
         }).map(({productId}) => productId);
     }
 
-    getProductsByIds = (data, ids, entries) => {
+    getProductsByIds = (data, ids, entries, type) => {
         const products = data.filter(({id}) => {
             return ids.includes(id);
         });
@@ -56,12 +66,19 @@ class DietTracker extends Component {
             const trackerEntry = entries.find(({productId}) => {
                 return productId === product.id;
             });
+            const onClick = () => {
+                this.setState(state => ({
+                    [type]: state[type].filter(row => product.id !== row.id)
+                }));
+            };
             return {
                 ...product,
-                calories: product.calories * trackerEntry.multiplier,
-                carbohydrates: product.carbohydrates * trackerEntry.multiplier,
-                protein: product.protein * trackerEntry.multiplier,
-                fat: product.fat * trackerEntry.multiplier
+                name: <Link to={`/list/${product.id}`}>{product.name}</Link>,
+                calories: parseFloat((product.calories * trackerEntry.multiplier).toFixed(2)),
+                carbohydrates: parseFloat((product.carbohydrates * trackerEntry.multiplier).toFixed(2)),
+                protein: parseFloat((product.protein * trackerEntry.multiplier).toFixed(2)),
+                fat: parseFloat((product.fat * trackerEntry.multiplier).toFixed(2)),
+                remove: <Button className="remove-btn" color="danger" size="sm" onClick={onClick}>&times;</Button>
             };
         });
     }
@@ -86,10 +103,10 @@ class DietTracker extends Component {
                 axios.get(`http://localhost:5000/api/products?filter=${productsFilter}`).then(({data}) => {
                     if (data.length){
                         console.log(data)
-                        const breakfast = this.getProductsByIds(data, breakfastIds, entries);
-                        const lunch = this.getProductsByIds(data, lunchIds, entries);
-                        const dinner = this.getProductsByIds(data, dinnerIds, entries);
-                        const snacks = this.getProductsByIds(data, snacksIds, entries);
+                        const breakfast = this.getProductsByIds(data, breakfastIds, entries, 'breakfast');
+                        const lunch = this.getProductsByIds(data, lunchIds, entries, 'lunch');
+                        const dinner = this.getProductsByIds(data, dinnerIds, entries, 'dinner');
+                        const snacks = this.getProductsByIds(data, snacksIds, entries, 'snacks');
                         this.setState({breakfast, lunch, dinner, snacks});
                     }
                 });
@@ -105,13 +122,13 @@ class DietTracker extends Component {
         this.setState({date: value})
     }
 
-    //MAKE TABLE COMPONENT
     //ADD SUPPORT FOR DELETING ENTRY FROM DATABASE
     //MAYBE ADD INFO ABOUT PORTION SIZE?
     //ADD PRECENTAGE TO GOAL TABLE
     //SHOULD I KEEP NEGATIVE VALUES IN REMAINING ROW OF GOAL TABLE
+    //CHANGE GOAL TABLE TO TABLECOMPONENT
     render() {
-        const { breakfast, lunch, dinner, snacks, goal } = this.state;
+        const { breakfast, lunch, dinner, snacks, goal, columns } = this.state;
         const everyEntry = [...breakfast, ...lunch, ...dinner, ...snacks];
         const sum = everyEntry.reduce((result, {calories, carbohydrates, protein, fat}) => {
             return {
@@ -136,116 +153,24 @@ class DietTracker extends Component {
                 </Form>
                 <h3>Breakfast</h3>
                 <EntryForm type="breakfast" date={this.state.date}></EntryForm>
-                <Table hover>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Product</th>
-                            <th>Calories</th>
-                            <th>Carbohydrates</th>
-                            <th>Protein</th>
-                            <th>Fat</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {breakfast.map(({id, name, calories, carbohydrates, protein, fat, multiplier}, index) => (
-                            <tr>
-                                <th scope="row">{index + 1}</th>
-                                <th>{name}</th>
-                                <th>{calories.toFixed(2)}</th>
-                                <th>{carbohydrates.toFixed(2)}</th>
-                                <th>{protein.toFixed(2)}</th>
-                                <th>{fat.toFixed(2)}</th>
-                            </tr>    
-                        ))}
-                    </tbody>
-                </Table>
+                <TableComponent columns={columns} rows={breakfast}/>
                 <h3>Lunch</h3>
                 <EntryForm type="lunch" date={this.state.date}></EntryForm>
-                <Table hover>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Product</th>
-                            <th>Calories</th>
-                            <th>Carbohydrates</th>
-                            <th>Protein</th>
-                            <th>Fat</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {lunch.map(({id, name, calories, carbohydrates, protein, fat, multiplier}, index) => (
-                            <tr>
-                                <th scope="row">{index + 1}</th>
-                                <th>{name}</th>
-                                <th>{calories.toFixed(2)}</th>
-                                <th>{carbohydrates.toFixed(2)}</th>
-                                <th>{protein.toFixed(2)}</th>
-                                <th>{fat.toFixed(2)}</th>
-                            </tr>    
-                        ))}
-                    </tbody>
-                </Table>
+                <TableComponent columns={columns} rows={lunch}/>
                 <h3>Dinner</h3>
                 <EntryForm type="dinner" date={this.state.date}></EntryForm>
-                <Table hover>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Product</th>
-                            <th>Calories</th>
-                            <th>Carbohydrates</th>
-                            <th>Protein</th>
-                            <th>Fat</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {dinner.map(({id, name, calories, carbohydrates, protein, fat, multiplier}, index) => (
-                            <tr>
-                                <th scope="row">{index + 1}</th>
-                                <th>{name}</th>
-                                <th>{calories.toFixed(2)}</th>
-                                <th>{carbohydrates.toFixed(2)}</th>
-                                <th>{protein.toFixed(2)}</th>
-                                <th>{fat.toFixed(2)}</th>
-                            </tr>    
-                        ))}
-                    </tbody>
-                </Table>
+                <TableComponent columns={columns} rows={dinner}/>
                 <h3>Snacks</h3>
                 <EntryForm type="snacks" date={this.state.date}></EntryForm>
-                <Table hover>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Product</th>
-                            <th>Calories</th>
-                            <th>Carbohydrates</th>
-                            <th>Protein</th>
-                            <th>Fat</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {snacks.map(({id, name, calories, carbohydrates, protein, fat, multiplier}, index) => (
-                            <tr>
-                                <th scope="row">{index + 1}</th>
-                                <th>{name}</th>
-                                <th>{calories.toFixed(2)}</th>
-                                <th>{carbohydrates.toFixed(2)}</th>
-                                <th>{protein.toFixed(2)}</th>
-                                <th>{fat.toFixed(2)}</th>
-                            </tr>    
-                        ))}
-                    </tbody>
-                </Table>
+                <TableComponent columns={columns} rows={snacks}/>
                 <h3>Your Goal</h3>
                 <Table hover>
                     <thead>
                         <tr>
                             <th></th>
                             <th>Calories</th>
-                            <th>Carbohydrates</th>
                             <th>Protein</th>
+                            <th>Carbohydrates</th>
                             <th>Fat</th>
                         </tr>
                     </thead>
@@ -253,22 +178,22 @@ class DietTracker extends Component {
                         <tr>
                             <th>Sum</th>
                             <th>{sum.calories}</th>
-                            <th>{sum.carbohydrates}</th>
                             <th>{sum.protein}</th>
+                            <th>{sum.carbohydrates}</th>
                             <th>{sum.fat}</th>
                         </tr>
                         <tr>
                             <th>Your Goal</th>
                             <th>{goal.calories}</th>
-                            <th>{goal.carbohydrates}</th>
                             <th>{goal.protein}</th>
+                            <th>{goal.carbohydrates}</th>
                             <th>{goal.fat}</th>
                         </tr>
                         <tr>
                             <th>Remaining</th>
                             <th>{(goal.calories - sum.calories).toFixed(2)}</th>
-                            <th>{(goal.carbohydrates - sum.carbohydrates).toFixed(2)}</th>
                             <th>{(goal.protein - sum.protein).toFixed(2)}</th>
+                            <th>{(goal.carbohydrates - sum.carbohydrates).toFixed(2)}</th>
                             <th>{(goal.fat - sum.fat).toFixed(2)}</th>
                         </tr>
                     </tbody>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Route} from 'react-router-dom';
 import AppNavbar from "./components/AppNavbar";
-import ShoppingList from "./components/ShoppingList";
+import ProductsList from "./containers/ProductsList";
 import DietTracker from "./components/DietTracker";
 import DietTrackerForm from "./components/DietTrackerForm";
 import LoginForm from "./components/LoginForm";
@@ -28,7 +28,7 @@ function App() {
           <Route exact={true} path="/diet-tracker" component={DietTracker}/>
           <Route exact={true} path="/diet-tracker-form" component={DietTrackerForm}/>
           <Route exact={true} path="/goal" component={Goal}/>
-          <Route exact={true} path="/list" component={ShoppingList}/>
+          <Route exact={true} path="/list" component={ProductsList}/>
           <Route exact={true} path="/list/:id" component={Product}/>
         </Router>
       )

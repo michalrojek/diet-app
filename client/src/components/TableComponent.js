@@ -33,20 +33,36 @@ class TableComponent extends Component {
     </ListGroup>
     */
 
+    nextPage = () => {
+        const {rowsCount, pageSize, changePage, currentPage} = this.props;
+        const pageCount = Math.floor(rowsCount/pageSize);
+        if (currentPage !== pageCount) {
+            changePage(currentPage + 1);
+        }
+    }
+
+    previousPage = () => {
+        const {changePage, currentPage} = this.props;
+        if (currentPage > 1) {
+            changePage(currentPage - 1);
+        }
+    }
+
     render() {
-        const {columns, rows, rowsCount, pageSize} = this.props;
+        const {columns, rows, rowsCount, pageSize, changePage} = this.props;
         const pageCount = Math.floor(rowsCount/pageSize);
         const pageNumbers = [];
         for (let i = 1; i <= pageCount; i++) {
             const pageNumber = (
                 <PaginationItem>
-                    <PaginationLink href="#">
+                    <PaginationLink href="" onClick={() => {changePage(i)}}>
                         {i}
                     </PaginationLink>
                 </PaginationItem>
             );
             pageNumbers.push(pageNumber);
         }
+        //MAYBE DELETE THIS CONTAINER? REPLACE IT WITH BASIC DIV
         return (
             <Container>
                 <Table hover>
@@ -71,17 +87,17 @@ class TableComponent extends Component {
                 </Table>
                 <Pagination aria-label="Page navigation example">
                     <PaginationItem>
-                        <PaginationLink first href="#" />
+                        <PaginationLink first href="" onClick={() => {changePage(1)}}/>
                     </PaginationItem>
                     <PaginationItem>
-                        <PaginationLink previous href="#" />
+                        <PaginationLink previous href="" onClick={this.previousPage}/>
                     </PaginationItem>
                     {pageNumbers}
                     <PaginationItem>
-                        <PaginationLink next href="#" />
+                        <PaginationLink next href="" onClick={this.nextPage}/>
                     </PaginationItem>
                     <PaginationItem>
-                        <PaginationLink last href="#" />
+                        <PaginationLink last href="" onClick={() => {changePage(pageCount)}}/>
                     </PaginationItem>
                 </Pagination>
             </Container>
