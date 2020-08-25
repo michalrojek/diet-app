@@ -74,7 +74,7 @@ class EntryForm extends Component {
     submitData = (e) => {
         e.preventDefault();
         const {selected, portion} = this.state;
-        const {date, type} = this.props;
+        const {date, type, refreshTables} = this.props;
         if (selected) {
             axios.post('http://localhost:5000/api/Entries', {
                 productId: selected,
@@ -85,7 +85,8 @@ class EntryForm extends Component {
             }).then((response) => {
                 console.log(response)
                 this.toggle();
-                window.location.reload(false); 
+                refreshTables();
+                //window.location.reload(false); 
             })
         }
     }

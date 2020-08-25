@@ -153,7 +153,8 @@ class ProductsList extends Component {
             rowsCount: productsCount,
             pageSize: PAGE_SIZE,
             currentPage: page,
-            changePage: this.changePage
+            changePage: this.changePage,
+            showPagination: true
         }
         return (
             <Container className="diet-tracker-list">

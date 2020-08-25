@@ -1,11 +1,11 @@
 import React, { Component } from 'react';
-import { Container, ListGroup, ListGroupItem, Button, Modal, ModalHeader, ModalBody, ModalFooter, Input, FormGroup, Label, Form, Table } from 'reactstrap';
-import { CSSTransition, TransitionGroup } from 'react-transition-group';
+import { Container, Button, Input, FormGroup, Label, Form, Table } from 'reactstrap';
 import {Link, /*NavLink*/} from 'react-router-dom';
 import EntryForm from './EntryForm';
 import axios from 'axios';
 import TableComponent from './TableComponent';
 
+const PAGE_SIZE = 2;
 //MAYBE ADD KG TO LB CONVERTER TO WEIGHT GOAL?
 class DietTracker extends Component {
     constructor(props) {
@@ -26,13 +26,17 @@ class DietTracker extends Component {
                 {label: 'Carbohydrates', id: 'carbohydrates'},
                 {label: 'Fat', id: 'fat'},
                 {label: '', id: 'remove'}
-            ]
+            ],
+            shouldGetData: true,
+            weight: 0,
+            weightId: ''
         }
     }
 
     componentDidMount() {
         this.getData();
         this.getUserGoal();
+        this.getWeight();
     }
 
     //AFTER ADDING DATE TO GOAL THIS SHOULD BE CALLED IN COMPONENTDIDUPDATE TOO
@@ -47,8 +51,9 @@ class DietTracker extends Component {
     };
 
     componentDidUpdate(prevProps, prevState) {
-        if (this.state.date != prevState.date) {
+        if (this.state.date != prevState.date || this.state.shouldGetData) {
             this.getData();
+            this.getWeight();
         }
     }
 
@@ -107,11 +112,32 @@ class DietTracker extends Component {
                         const lunch = this.getProductsByIds(data, lunchIds, entries, 'lunch');
                         const dinner = this.getProductsByIds(data, dinnerIds, entries, 'dinner');
                         const snacks = this.getProductsByIds(data, snacksIds, entries, 'snacks');
-                        this.setState({breakfast, lunch, dinner, snacks});
+                        this.setState({breakfast, lunch, dinner, snacks, shouldGetData: false});
                     }
                 });
             } else {
-                this.setState({breakfast: [], lunch: [], dinner: [], snacks: []})
+                this.setState({breakfast: [], lunch: [], dinner: [], snacks: [], shouldGetData: false})
+            }
+        });
+    }
+
+    getWeight = () => {
+        const {date} = this.state;
+        const filter = `{"where": {"and": [{"userId": "${localStorage.getItem('userId')}"}, {"date": "${date}"}]}}`;
+        axios.get(`http://localhost:5000/api/Weights?filter=${filter}`).then(({data}) => {
+            if (data.length){
+                this.setState({weight: data[0].weight, weightId: data[0].id});
+            } else {
+                this.setState({weight: 0, weightId: ''});
+            }
+        });
+        //ADD LAST RECORDED WEIGHT
+        const filterForEarlierDates = `{"where": {"and": [{"userId": "${localStorage.getItem('userId')}"}, {"date": {"lt": "${date}"}}]}}`;
+        axios.get(`http://localhost:5000/api/Weights?filter=${filterForEarlierDates}`).then(({data}) => {
+            if (data.length){
+                //this.setState({weight: data[0].weight, weightId: data[0].id});
+            } else {
+                //this.setState({weight: 0, weightId: ''});
             }
         });
     }
@@ -122,13 +148,50 @@ class DietTracker extends Component {
         this.setState({date: value})
     }
 
+    refreshTables = () => {
+        this.setState({shouldGetData: true});
+    }
+
+    onSubmit = (e) => {
+        e.preventDefault();
+        const {date, weight, weightId} = this.state;
+        if (!weightId) {
+            axios.post('http://localhost:5000/api/Weights', {
+                userId: localStorage.getItem('userId'),
+                date,
+                weight
+            }).then((response) => {
+                this.setState({weightId: response.data.id});
+                //window.location.reload(false); 
+            })
+        } else {
+            axios.put('http://localhost:5000/api/Weights', {
+                userId: localStorage.getItem('userId'),
+                date,
+                weight,
+                id: weightId
+            }).then((response) => {
+                console.log(response)
+                //window.location.reload(false); 
+            })
+        }
+    }
+
+    onWeightChange = (e) => {
+        e.preventDefault();
+        const {value} = e.target;
+        this.setState({weight: value});
+    }
+
     //ADD SUPPORT FOR DELETING ENTRY FROM DATABASE
     //MAYBE ADD INFO ABOUT PORTION SIZE?
     //ADD PRECENTAGE TO GOAL TABLE
     //SHOULD I KEEP NEGATIVE VALUES IN REMAINING ROW OF GOAL TABLE
     //CHANGE GOAL TABLE TO TABLECOMPONENT
     render() {
-        const { breakfast, lunch, dinner, snacks, goal, columns } = this.state;
+        const { 
+            breakfast, lunch, dinner, snacks, goal, columns, weight, weightId
+        } = this.state;
         const everyEntry = [...breakfast, ...lunch, ...dinner, ...snacks];
         const sum = everyEntry.reduce((result, {calories, carbohydrates, protein, fat}) => {
             return {
@@ -143,6 +206,7 @@ class DietTracker extends Component {
             protein: 0,
             fat: 0
         });
+        const weightButtonLabel = weightId ? 'Update todays weight entry' : 'Add todays weight entry'
         return (
             <Container>
                 <Form>
@@ -151,17 +215,24 @@ class DietTracker extends Component {
                         <Input type="date" name="datePicker" id="datePicker" placeholder="Choose date" onChange={this.onChange} value={this.state.date}/>
                     </FormGroup>
                 </Form>
+                <Form onSubmit={this.onSubmit} inline>
+                    <FormGroup className="mb-2 mr-sm-2 mb-sm-0">
+                        <Label for="weight" className="mr-sm-2">Your weight for today</Label>
+                        <Input type="number" name="weight" id="weight" placeholder="Today weight" step="any" value={weight} onChange={this.onWeightChange}/>
+                    </FormGroup>
+                    <Button>{weightButtonLabel}</Button>
+                </Form>
                 <h3>Breakfast</h3>
-                <EntryForm type="breakfast" date={this.state.date}></EntryForm>
+                <EntryForm type="breakfast" date={this.state.date} refreshTables={this.refreshTables}></EntryForm>
                 <TableComponent columns={columns} rows={breakfast}/>
                 <h3>Lunch</h3>
-                <EntryForm type="lunch" date={this.state.date}></EntryForm>
+                <EntryForm type="lunch" date={this.state.date} refreshTables={this.refreshTables}></EntryForm>
                 <TableComponent columns={columns} rows={lunch}/>
                 <h3>Dinner</h3>
-                <EntryForm type="dinner" date={this.state.date}></EntryForm>
+                <EntryForm type="dinner" date={this.state.date} refreshTables={this.refreshTables}></EntryForm>
                 <TableComponent columns={columns} rows={dinner}/>
                 <h3>Snacks</h3>
-                <EntryForm type="snacks" date={this.state.date}></EntryForm>
+                <EntryForm type="snacks" date={this.state.date} refreshTables={this.refreshTables}></EntryForm>
                 <TableComponent columns={columns} rows={snacks}/>
                 <h3>Your Goal</h3>
                 <Table hover>

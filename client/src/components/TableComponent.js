@@ -49,18 +49,38 @@ class TableComponent extends Component {
     }
 
     render() {
-        const {columns, rows, rowsCount, pageSize, changePage} = this.props;
-        const pageCount = Math.floor(rowsCount/pageSize);
-        const pageNumbers = [];
-        for (let i = 1; i <= pageCount; i++) {
-            const pageNumber = (
-                <PaginationItem>
-                    <PaginationLink href="" onClick={() => {changePage(i)}}>
-                        {i}
-                    </PaginationLink>
-                </PaginationItem>
+        const {columns, rows, rowsCount, pageSize, changePage, showPagination} = this.props;
+        let pagination = null;
+        if (showPagination) {
+            const pageCount = Math.ceil(rowsCount/pageSize);
+            const pageNumbers = [];
+            for (let i = 1; i <= pageCount; i++) {
+                const pageNumber = (
+                    <PaginationItem>
+                        <PaginationLink href="" onClick={() => {changePage(i)}}>
+                            {i}
+                        </PaginationLink>
+                    </PaginationItem>
+                );
+                pageNumbers.push(pageNumber);
+            }
+            pagination = (
+                <Pagination aria-label="Page navigation example">
+                    <PaginationItem>
+                        <PaginationLink first href="" onClick={() => {changePage(1)}}/>
+                    </PaginationItem>
+                    <PaginationItem>
+                        <PaginationLink previous href="" onClick={this.previousPage}/>
+                    </PaginationItem>
+                    {pageNumbers}
+                    <PaginationItem>
+                        <PaginationLink next href="" onClick={this.nextPage}/>
+                    </PaginationItem>
+                    <PaginationItem>
+                        <PaginationLink last href="" onClick={() => {changePage(pageCount)}}/>
+                    </PaginationItem>
+                </Pagination>
             );
-            pageNumbers.push(pageNumber);
         }
         //MAYBE DELETE THIS CONTAINER? REPLACE IT WITH BASIC DIV
         return (
@@ -85,21 +105,7 @@ class TableComponent extends Component {
                             ))}
                     </tbody>
                 </Table>
-                <Pagination aria-label="Page navigation example">
-                    <PaginationItem>
-                        <PaginationLink first href="" onClick={() => {changePage(1)}}/>
-                    </PaginationItem>
-                    <PaginationItem>
-                        <PaginationLink previous href="" onClick={this.previousPage}/>
-                    </PaginationItem>
-                    {pageNumbers}
-                    <PaginationItem>
-                        <PaginationLink next href="" onClick={this.nextPage}/>
-                    </PaginationItem>
-                    <PaginationItem>
-                        <PaginationLink last href="" onClick={() => {changePage(pageCount)}}/>
-                    </PaginationItem>
-                </Pagination>
+                {pagination}
             </Container>
         );
     }
