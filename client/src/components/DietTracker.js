@@ -29,7 +29,8 @@ class DietTracker extends Component {
             ],
             shouldGetData: true,
             weight: 0,
-            weightId: ''
+            weightId: '',
+            latestDate: new Date().toJSON().slice(0,10)
         }
     }
 
@@ -126,18 +127,29 @@ class DietTracker extends Component {
         const filter = `{"where": {"and": [{"userId": "${localStorage.getItem('userId')}"}, {"date": "${date}"}]}}`;
         axios.get(`http://localhost:5000/api/Weights?filter=${filter}`).then(({data}) => {
             if (data.length){
-                this.setState({weight: data[0].weight, weightId: data[0].id});
+                this.setState({weight: data[0].weight, weightId: data[0].id, latestDate: data[0].date.slice(0,10)});
             } else {
-                this.setState({weight: 0, weightId: ''});
-            }
-        });
-        //ADD LAST RECORDED WEIGHT
-        const filterForEarlierDates = `{"where": {"and": [{"userId": "${localStorage.getItem('userId')}"}, {"date": {"lt": "${date}"}}]}}`;
-        axios.get(`http://localhost:5000/api/Weights?filter=${filterForEarlierDates}`).then(({data}) => {
-            if (data.length){
-                //this.setState({weight: data[0].weight, weightId: data[0].id});
-            } else {
-                //this.setState({weight: 0, weightId: ''});
+                //ADD LAST RECORDED WEIGHT
+                const filterForEarlierDates = `{"where": {"and": [{"userId": "${localStorage.getItem('userId')}"}, {"date": {"lt": "${date}"}}]}}`;
+                axios.get(`http://localhost:5000/api/Weights?filter=${filterForEarlierDates}`).then(({data}) => {
+                    if (data.length){
+                        const dates = data.map(({date}) => {
+                            return date;
+                        })
+                        const max = new Date(Math.max.apply(null, dates.map(function(e) {
+                            return new Date(e);
+                        })));
+                        console.log(dates);
+                        console.log(max)
+                        const latestEntry = data.find(({date}) => {
+                            return new Date(date).getTime() === max.getTime();
+                        })
+                        console.log(latestEntry)
+                        this.setState({weight: latestEntry.weight, weightId: '', latestDate: max.toJSON().slice(0,10)});
+                    } else {
+                        this.setState({weight: 0, weightId: '', latestDate: date});
+                    }
+                });
             }
         });
     }
@@ -190,7 +202,7 @@ class DietTracker extends Component {
     //CHANGE GOAL TABLE TO TABLECOMPONENT
     render() {
         const { 
-            breakfast, lunch, dinner, snacks, goal, columns, weight, weightId
+            breakfast, lunch, dinner, snacks, goal, columns, weight, weightId, latestDate
         } = this.state;
         const everyEntry = [...breakfast, ...lunch, ...dinner, ...snacks];
         const sum = everyEntry.reduce((result, {calories, carbohydrates, protein, fat}) => {
@@ -215,6 +227,7 @@ class DietTracker extends Component {
                         <Input type="date" name="datePicker" id="datePicker" placeholder="Choose date" onChange={this.onChange} value={this.state.date}/>
                     </FormGroup>
                 </Form>
+                <span>Last recorded weight: {weight} on {latestDate}</span>
                 <Form onSubmit={this.onSubmit} inline>
                     <FormGroup className="mb-2 mr-sm-2 mb-sm-0">
                         <Label for="weight" className="mr-sm-2">Your weight for today</Label>

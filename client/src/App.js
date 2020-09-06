@@ -7,6 +7,7 @@ import DietTrackerForm from "./components/DietTrackerForm";
 import LoginForm from "./components/LoginForm";
 import RegisterForm from "./components/RegisterForm";
 import Product from "./components/Product";
+import Chart from "./components/Chart";
 import Goal from "./components/Goal";
 import Auth from './modules/Auth';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -30,6 +31,7 @@ function App() {
           <Route exact={true} path="/goal" component={Goal}/>
           <Route exact={true} path="/list" component={ProductsList}/>
           <Route exact={true} path="/list/:id" component={Product}/>
+          <Route exact={true} path="/charts" component={Chart}/>
         </Router>
       )
     }

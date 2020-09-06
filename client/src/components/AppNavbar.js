@@ -86,6 +86,11 @@ class AppNavbar extends Component {
                                     </Link>
                                 </NavItem>
                                 <NavItem>
+                                    <Link to="/charts" className="nav-link">
+                                        Charts
+                                    </Link>
+                                </NavItem>
+                                <NavItem>
                                     <Link to="/goal" className="nav-link">
                                         Set your nutrition goal
                                     </Link>
