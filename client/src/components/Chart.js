@@ -4,24 +4,23 @@ import axios from 'axios';
 
 //MAKE IT ONLY GRAPHIC COMPONENT - WHOLE BUSINESS LOGIC SHOULD BE KEPT IN CONTAINERS
 //LOOK THROUGH ALL FILES AND FORMAT THEM SIMILARLLY - E.G. CONRAINER INSTEAD OF DIV AS MAIN COMPONENT IN RETURN
+//ADD CHARTS FOR CALORIES, PROTEIN, FAT, CARBS
+//CHANGE STYLING OF CHARTS AND LABELS
+//ADD BUTTONS FOR PERIODS - 7, 30, 90, 180, 365, all
+// MAYBE LOOK TROUGH CODE AND REFACTOR IT A LITTLE BIT
 class Chart extends Component {
     constructor(props) {
         super(props);
 
+        //7, 30, 90, 180, 365, all
         this.state = {
+            lastDays: 90,
             chartData: {
-                labels: ['Boston', 'Worcester', 'Springfield', 'Lowell', 'Cambridge', 'New Bedford'],
+                labels: [],
                 datasets: [
                     {
                         label: 'Population',
-                        data: [
-                            617594,
-                            181045,
-                            153060,
-                            106519,
-                            105162,
-                            95072
-                        ],
+                        data: [],
                         backgroundColor: [
                             'rgba(255, 99, 132, 0.6)',
                             'rgba(54, 162, 235, 0.6)',
@@ -30,7 +29,8 @@ class Chart extends Component {
                             'rgba(153, 102, 255, 0.6)',
                             'rgba(255, 159, 64, 0.6)',
                             'rgba(255, 99, 132, 0.6)'
-                        ]
+                        ],
+                        fill: false
                     }
                 ]
             }
@@ -38,37 +38,38 @@ class Chart extends Component {
     }
 
     componentDidMount() {
-        //this.getWeight();
+        this.getWeight();
     }
 
     getWeight = () => {
-        const {date} = this.state;
-        const filter = `{"where": {"and": [{"userId": "${localStorage.getItem('userId')}"}, {"date": "${date}"}]}}`;
+        const dates = [];
+        for(let i = 0; i < this.state.lastDays; i++) {
+            let date = new Date();
+            date.setDate(date.getDate() - i);
+            dates.push(date.toISOString().split('T')[0])
+        }
+        const filter = `{"where": {"userId": "${localStorage.getItem('userId')}"}}`;
         axios.get(`http://localhost:5000/api/Weights?filter=${filter}`).then(({data}) => {
-            if (data.length){
-                this.setState({weight: data[0].weight, weightId: data[0].id, latestDate: data[0].date.slice(0,10)});
-            } else {
-                const filterForEarlierDates = `{"where": {"and": [{"userId": "${localStorage.getItem('userId')}"}, {"date": {"lt": "${date}"}}]}}`;
-                axios.get(`http://localhost:5000/api/Weights?filter=${filterForEarlierDates}`).then(({data}) => {
-                    if (data.length){
-                        const dates = data.map(({date}) => {
-                            return date;
-                        })
-                        const max = new Date(Math.max.apply(null, dates.map(function(e) {
-                            return new Date(e);
-                        })));
-                        console.log(dates);
-                        console.log(max)
-                        const latestEntry = data.find(({date}) => {
-                            return new Date(date).getTime() === max.getTime();
-                        })
-                        console.log(latestEntry)
-                        this.setState({weight: latestEntry.weight, weightId: '', latestDate: max.toJSON().slice(0,10)});
-                    } else {
-                        this.setState({weight: 0, weightId: '', latestDate: date});
-                    }
+            const {chartData} = this.state;
+            const labels = data.map(({date}) => date);
+            const values = dates.map(date => {
+                const filteredWeight = data.find(({date: wieghtDate}) => {
+                    return date == wieghtDate.slice(0,10);
                 });
-            }
+                if (filteredWeight) {
+                    return filteredWeight.weight;
+                }
+                return 0;
+            });
+            let currentWeight = 0;
+            const mappedValues = values.reduce((result, current) => {
+                if (current != 0) {
+                    currentWeight = current;
+                }
+                return [...result, currentWeight];
+            }, []);
+            console.log(values)
+            this.setState({chartData: {...chartData, labels: dates, datasets: [{...chartData.datasets[0], data: mappedValues}]}});
         });
     }
 
@@ -82,7 +83,7 @@ class Chart extends Component {
     render() {
         return (
             <div className="chart">
-                <Bar
+                <Line
                     data={this.state.chartData}
                     options={{
                         title: {
